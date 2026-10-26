@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bouesti Admin — Control Room</title>
+<script>
+(function(){
+  try{
+    var saved = localStorage.getItem('bm_admin_theme');
+    var theme = (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e){ document.documentElement.setAttribute('data-theme','dark'); }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
+<style>
+/* ─────────────────────────────────────────────────────────────────
+   BOUESTI ADMIN — Control Room stylesheet
+   Same brand tokens as the storefront: mint on dark teal.
+───────────────────────────────────────────────────────────────── */
+:root{
+  --mint:#02f5a1; --mint-dim:#01c880; --mint-glow:rgba(2,245,161,.20); --mint-glow2:rgba(2,245,161,.08);
+  --violet:#7c5cff; --sky:#38bdf8; --gold:#ffc947; --danger:#ff4d6d;
+  --dark:#07191e; --dark-2:#0d2830; --dark-3:#122f38; --dark-4:#1a3d48; --dark-5:#234a56;
+  --text:#e8f8f5; --text-dim:rgba(232,248,245,.62); --text-faint:rgba(232,248,245,.4);
+  --line:rgba(2,245,161,.16); --glass:rgba(18,47,56,.55); --glass-brd:rgba(2,245,161,.14);
+  --display:"Syne",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",monospace;
+  --radius:12px; --radius-lg:18px; --sidebar-w:246px; --sidebar-w-collapsed:76px;
+}
+html[data-theme="light"]{
+  --dark:#f3f9f7; --dark-2:#ffffff; --dark-3:#eef6f3; --dark-4:#dfece7; --dark-5:#c7dcd6;
+  --text:#0a2027; --text-dim:rgba(10,32,39,.64); --text-faint:rgba(10,32,39,.42);
+  --line:rgba(1,150,100,.22); --glass:rgba(255,255,255,.6); --glass-brd:rgba(1,150,100,.18);
+}
+*{box-sizing:border-box;}
+/* Global fix: the [hidden] attribute must always win over any class that
+   also sets `display`, otherwise "hidden" elements (esp. full-screen
+   overlays like the loader/login/modals) stay display:flex/grid while
+   invisible and silently block all clicks and keyboard input underneath. */
+[hidden]{display:none !important;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--dark);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color .3s ease,color .3s ease;}
+button,input,select,textarea{font-family:inherit;color:inherit;}
+h1,h2,h3,h4{margin:0;font-family:var(--display);}
+p{margin:0;}
+::selection{background:var(--mint-glow);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--dark-5);border-radius:8px;}
+
+.glass{background:var(--glass);border:1px solid var(--glass-brd);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:var(--radius-lg);}
+
+/* ══ LOADING SCREEN ══ */
+.load-screen{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;}
+.load-mark svg circle.pr-fg{animation:spin 1.4s linear infinite;transform-origin:center;}
+.load-mark{animation:pulse 1.6s ease-in-out infinite;}
+.load-word{font-family:var(--display);font-weight:800;letter-spacing:.06em;font-size:22px;color:var(--text);}
+.load-word span{color:var(--mint);}
+.load-bar{width:220px;height:4px;background:var(--dark-3);border-radius:4px;overflow:hidden;}
+.load-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--mint-dim),var(--mint));transition:width .4s ease;box-shadow:0 0 12px var(--mint-glow);}
+.load-sub{font-size:13px;color:var(--text-faint);font-family:var(--mono);}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.08);opacity:.85;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ══ LOGIN SCREEN ══ */
+.login-screen{position:fixed;inset:0;display:grid;grid-template-columns:1.1fr 1fr;z-index:50;background:var(--dark);}
+.login-visual{position:relative;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,rgba(2,245,161,.14),transparent 60%),var(--dark-2);display:flex;align-items:center;padding:60px;}
+.login-visual-glow{position:absolute;width:520px;height:520px;background:radial-gradient(circle,var(--mint-glow2),transparent 70%);top:-140px;right:-140px;border-radius:50%;animation:float 8s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(30px);}}
+.login-visual-content{position:relative;z-index:2;max-width:460px;}
+.brand-mark{font-family:var(--mono);color:var(--mint);letter-spacing:.08em;margin-bottom:22px;font-size:14px;}
+.login-visual-content h1{font-size:38px;line-height:1.15;color:var(--text);margin-bottom:16px;}
+.login-visual-content h1 span{color:var(--mint);}
+.login-visual-content p{color:var(--text-dim);font-size:15px;line-height:1.6;}
+.login-stats{display:flex;gap:10px;margin-top:34px;flex-wrap:wrap;}
+.login-form-side{display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;max-height:100vh;}
+.login-card{width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;background:var(--dark-3);border:1px solid var(--line);border-radius:var(--radius-lg);padding:26px 30px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.login-card h2{font-size:24px;color:var(--text);}
+.login-hint{color:var(--text-faint);font-size:12px;margin-bottom:2px;line-height:1.4;}
+.login-card label{font-size:11.5px;color:var(--text-dim);margin-top:1px;}
+.login-card input{background:var(--dark-4);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13.5px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.login-card input:focus{border-color:var(--mint);box-shadow:0 0 0 3px var(--mint-glow2);}
+.pw-wrap{position:relative;}
+.pw-wrap input{width:100%;padding-right:40px;}
+.pw-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;opacity:.7;}
+.login-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-dim);margin:4px 0;}
+.login-row a{color:var(--mint);}
+.check{display:flex;align-items:center;gap:6px;}
+.login-error{color:var(--danger);font-size:13px;background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.3);border-radius:8px;padding:8px 10px;}
+.login-demo{font-size:11px;color:var(--text-faint);font-family:var(--mono);text-align:center;margin-top:6px;}
+.login-demo code{color:var(--mint);}
+
+/* ══ AUTH TABS (Sign in / Create account) ══ */
+.auth-card-head{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:2px;}
+.auth-logo{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,var(--mint),var(--violet));display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 0 0 1px var(--mint-glow2),0 10px 30px var(--mint-glow2);position:relative;}
+.auth-logo::after{content:"";position:absolute;inset:-6px;border-radius:20px;border:1px solid var(--mint-glow);animation:ringPulse 2.4s ease-in-out infinite;}
+@keyframes ringPulse{0%,100%{transform:scale(1);opacity:.7;}50%{transform:scale(1.08);opacity:0;}}
+.auth-tabs{display:flex;background:var(--dark-4);border-radius:12px;padding:4px;position:relative;width:100%;}
+.auth-tab{flex:1;position:relative;z-index:2;background:none;border:none;padding:8px 8px;font-size:13px;font-weight:700;color:var(--text-faint);cursor:pointer;border-radius:9px;transition:color .25s ease;}
+.auth-tab.active{color:#052018;}
+.auth-tab-indicator{position:absolute;top:4px;left:4px;bottom:4px;width:calc(50% - 4px);background:linear-gradient(135deg,var(--mint),var(--mint-dim));border-radius:9px;transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:0 4px 14px var(--mint-glow2);z-index:1;}
+.auth-tab-indicator.pos-1{transform:translateX(100%);}
+
+.login-card{position:relative;}
+.login-card::before{content:"";position:absolute;inset:-1px;border-radius:var(--radius-lg);padding:1px;background:linear-gradient(135deg,var(--mint-glow),transparent 40%,var(--violet)33);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.6;}
+.login-card:focus-within{box-shadow:0 24px 70px rgba(0,0,0,.4),0 0 0 1px var(--mint-glow);}
+#loginForm,#signupForm{display:flex;flex-direction:column;gap:8px;}
+
+.field{position:relative;}
+.field .field-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.6;pointer-events:none;}
+.field input{padding-left:38px !important;}
+
+.pw-strength{height:3px;border-radius:4px;background:var(--dark-4);margin-top:2px;overflow:hidden;}
+.pw-strength-fill{height:100%;width:0%;border-radius:4px;transition:width .25s ease,background-color .25s ease;}
+.pw-strength-label{font-size:10px;color:var(--text-faint);margin-top:1px;display:block;}
+
+.auth-switch{text-align:center;font-size:12.5px;color:var(--text-dim);margin-top:2px;}
+.auth-switch a{color:var(--mint);font-weight:600;cursor:pointer;}
+.role-pills{display:flex;gap:6px;}
+.role-pill{flex:1;text-align:center;padding:6px 4px;border-radius:8px;border:1px solid var(--line);background:var(--dark-4);font-size:11.5px;cursor:pointer;color:var(--text-dim);transition:all .2s ease;}
+.role-pill input{display:none;}
+.role-pill.checked{border-color:var(--mint);color:var(--mint);background:var(--mint-glow2);box-shadow:0 0 12px var(--mint-glow2);}
+
+
+.btn-primary{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--mint),var(--mint-dim));color:#052018;border:none;border-radius:9px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px var(--mint-glow2);transition:transform .15s ease,box-shadow .2s ease;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 26px var(--mint-glow);}
+.btn-primary:active{transform:translateY(0);}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:11px 16px;font-size:14px;cursor:pointer;transition:border-color .2s,background .2s;}
+.btn-ghost:hover{border-color:var(--mint);background:var(--mint-glow2);}
+
+/* ripple */
+.ripple{position:relative;}
+.ripple .ripple-circle{position:absolute;border-radius:50%;background:rgba(255,255,255,.5);transform:scale(0);animation:ripple .6s ease-out;pointer-events:none;}
+@keyframes ripple{to{transform:scale(3);opacity:0;}}
+
+/* ══ FLOATING AMBIENT ICONS ══ */
+.floaters{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;opacity:.5;}
+.floaters span{position:absolute;font-size:22px;opacity:.12;animation:drift 22s linear infinite;}
+.floaters span:nth-child(1){left:8%;animation-duration:26s;}
+.floaters span:nth-child(2){left:22%;animation-duration:19s;animation-delay:-4s;}
+.floaters span:nth-child(3){left:44%;animation-duration:24s;animation-delay:-9s;}
+.floaters span:nth-child(4){left:63%;animation-duration:21s;animation-delay:-2s;}
+.floaters span:nth-child(5){left:80%;animation-duration:28s;animation-delay:-13s;}
+.floaters span:nth-child(6){left:92%;animation-duration:18s;animation-delay:-6s;}
+@keyframes drift{0%{transform:translateY(110vh) rotate(0deg);}100%{transform:translateY(-10vh) rotate(360deg);}}
+
+/* ══ DASHBOARD SHELL ══ */
+.dashboard{display:flex;min-height:100vh;position:relative;z-index:1;}
+.sidebar{width:var(--sidebar-w);background:var(--dark-2);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:width .3s cubic-bezier(.4,0,.2,1);position:relative;z-index:5;}
+.sidebar.collapsed{width:var(--sidebar-w-collapsed);}
+.side-top{display:flex;align-items:center;justify-content:space-between;padding:20px 18px;}
+.side-brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:16px;}
+.side-brand .dot{width:9px;height:9px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);}
+.sidebar.collapsed .side-brand-text{display:none;}
+.collapse-btn{background:none;border:1px solid var(--line);color:var(--text);width:26px;height:26px;border-radius:50%;cursor:pointer;transition:transform .3s;}
+.sidebar.collapsed .collapse-btn{transform:rotate(180deg);}
+.side-nav{display:flex;flex-direction:column;gap:2px;padding:8px;flex:1;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:12px;background:none;border:none;color:var(--text-dim);padding:12px 14px;border-radius:9px;cursor:pointer;font-size:13.5px;text-align:left;position:relative;transition:background .2s,color .2s;white-space:nowrap;}
+.nav-item .ic{font-size:8px;color:var(--mint);}
+.nav-item:hover{background:var(--dark-3);color:var(--text);}
+.nav-item.active{background:linear-gradient(90deg,var(--mint-glow2),transparent);color:var(--mint);box-shadow:inset 3px 0 0 var(--mint);}
+.sidebar.collapsed .nav-item .lbl,.sidebar.collapsed .nav-item .nav-badge{display:none;}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:2px 6px;border-radius:20px;font-family:var(--mono);}
+.side-bottom{padding:10px;border-top:1px solid var(--line);}
+.nav-item.logout{color:var(--danger);}
+
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--line);background:var(--dark-2);position:sticky;top:0;z-index:4;}
+.burger{display:none;background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;}
+.topbar-title{font-family:var(--display);font-weight:700;font-size:19px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:14px;}
+.weather,.clock{font-family:var(--mono);font-size:13px;color:var(--text-dim);background:var(--dark-3);padding:7px 12px;border-radius:20px;border:1px solid var(--line);}
+.icon-btn{background:var(--dark-3);border:1px solid var(--line);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:15px;position:relative;}
+.bell-wrap{position:relative;}
+.bell-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--danger);border-radius:50%;box-shadow:0 0 8px var(--danger);animation:pulseDot 1.4s infinite;}
+@keyframes pulseDot{0%,100%{transform:scale(1);}50%{transform:scale(1.4);}}
+.profile-chip{display:flex;align-items:center;gap:9px;padding:4px 10px 4px 4px;border-radius:24px;background:var(--dark-3);border:1px solid var(--line);}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--mint),var(--violet));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#052018;}
+.profile-meta{line-height:1.2;}
+.profile-name{font-size:12.5px;font-weight:600;}
+.profile-role{font-size:10.5px;color:var(--text-faint);text-transform:capitalize;}
+
+.content{padding:26px;flex:1;}
+.panel{animation:panelIn .35s ease;}
+@keyframes panelIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ══ STAT CARDS ══ */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:22px;}
+.stat-card{padding:18px;display:flex;align-items:center;gap:14px;transition:transform .25s ease,box-shadow .25s ease;}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.25);}
+.stat-card.neon{box-shadow:0 0 0 1px var(--mint-glow2),0 0 30px var(--mint-glow2);}
+.stat-ic{font-size:22px;width:44px;height:44px;border-radius:12px;background:var(--dark-4);display:flex;align-items:center;justify-content:center;}
+.stat-meta{flex:1;min-width:0;}
+.stat-label{font-size:12px;color:var(--text-faint);}
+.stat-value{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--text);}
+.progress-ring{flex-shrink:0;}
+.pr-bg{fill:none;stroke:var(--dark-4);stroke-width:4;}
+.pr-fg{fill:none;stroke:var(--mint);stroke-width:4;stroke-linecap:round;stroke-dasharray:119;stroke-dashoffset:119;transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1s ease;}
+
+/* ══ PULSE STRIP (signature element) ══ */
+.pulse-card{padding:22px;margin-bottom:22px;}
+.pulse-head h3{font-size:16px;display:flex;align-items:center;gap:8px;}
+.pulse-head p{color:var(--text-faint);font-size:12.5px;margin:4px 0 16px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulseDot 1.2s infinite;}
+.pulse-strip{display:flex;align-items:flex-end;gap:6px;height:120px;}
+.pulse-bar{flex:1;background:linear-gradient(180deg,var(--mint),var(--mint-dim));border-radius:5px 5px 2px 2px;min-height:4px;position:relative;transition:height .6s cubic-bezier(.4,0,.2,1);box-shadow:0 0 10px var(--mint-glow2);}
+.pulse-bar span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%) rotate(-40deg);font-size:9px;color:var(--text-faint);white-space:nowrap;transform-origin:top left;}
+
+/* ══ GRID / CHART CARDS ══ */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.chart-card{padding:20px;}
+.chart-card h3{font-size:15px;margin-bottom:14px;}
+@media(max-width:960px){.grid-2{grid-template-columns:1fr;}}
+
+.mini-log{list-style:none;margin:0;padding:0;max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
+.mini-log li{font-size:12.5px;color:var(--text-dim);border-left:2px solid var(--mint);padding-left:10px;animation:slideIn .3s ease;}
+.mini-log li b{color:var(--text);}
+.mini-log .t{display:block;font-family:var(--mono);font-size:10.5px;color:var(--text-faint);}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+
+/* ══ TOOLBAR / TABLE ══ */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.toolbar input[type=search],.toolbar select{background:var(--dark-3);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13.5px;min-width:200px;outline:none;}
+.toolbar input[type=search]:focus,.toolbar select:focus{border-color:var(--mint);}
+.table-wrap{overflow-x:auto;position:relative;}
+.data-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.data-table th{text-align:left;padding:14px 16px;color:var(--text-faint);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line);}
+.data-table td{padding:13px 16px;border-bottom:1px solid var(--line);color:var(--text-dim);}
+.data-table tr{transition:background .15s;}
+.data-table tbody tr:hover{background:var(--dark-3);}
+.mono{font-family:var(--mono);font-size:12px;color:var(--text-dim);}
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;text-transform:capitalize;}
+.badge.admin{background:rgba(124,92,255,.18);color:var(--violet);}
+.badge.manager{background:rgba(56,189,248,.18);color:var(--sky);}
+.badge.staff{background:rgba(255,201,71,.18);color:var(--gold);}
+.badge.customer{background:var(--dark-4);color:var(--text-dim);}
+.badge.active,.badge.published,.badge.delivered{background:rgba(2,245,161,.16);color:var(--mint);}
+.badge.suspended,.badge.cancelled{background:rgba(255,77,109,.16);color:var(--danger);}
+.badge.pending,.badge.draft{background:rgba(255,201,71,.16);color:var(--gold);}
+.badge.processing{background:rgba(56,189,248,.16);color:var(--sky);}
+.row-actions{display:flex;gap:6px;}
+.row-actions button{background:var(--dark-4);border:1px solid var(--line);color:var(--text);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:12px;}
+.row-actions button.danger:hover{border-color:var(--danger);color:var(--danger);}
+.row-actions button:hover{border-color:var(--mint);}
+
+.skeleton-rows{display:none;flex-direction:column;gap:8px;padding:16px;}
+.skeleton-rows.show{display:flex;}
+.skel-line{height:36px;border-radius:8px;background:linear-gradient(90deg,var(--dark-3) 25%,var(--dark-4) 37%,var(--dark-3) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;}
+@keyframes shimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
+
+.pagination{display:flex;gap:6px;justify-content:center;margin-top:16px;}
+.pagination button{background:var(--dark-3);border:1px solid var(--line);color:var(--text-dim);width:32px;height:32px;border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:12px;}
+.pagination button.active{background:var(--mint);color:#052018;border-color:var(--mint);}
+
+/* ══ TABS ══ */
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:2px;}
+.tab{background:none;border:none;color:var(--text-faint);padding:10px 6px;cursor:pointer;font-size:13.5px;position:relative;font-weight:600;}
+.tab.active{color:var(--mint);}
+.tab.active::after{content:"";position:absolute;bottom:-3px;left:0;right:0;height:2px;background:var(--mint);box-shadow:0 0 8px var(--mint);border-radius:2px;}
+
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.prod-card{padding:16px;border-radius:var(--radius);background:var(--dark-3);border:1px solid var(--line);transition:transform .2s,box-shadow .2s;}
+.prod-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.25);}
+.prod-card h4{font-size:14.5px;margin-bottom:6px;}
+.prod-card .price{font-family:var(--mono);color:var(--mint);font-size:15px;margin-bottom:4px;}
+.prod-card .meta{font-size:11.5px;color:var(--text-faint);margin-bottom:10px;}
+.prod-card .actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ══ FORMS ══ */
+.settings-form{padding:22px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px;max-width:520px;}
+.settings-form h3{font-size:16px;margin-bottom:4px;}
+.settings-form label{font-size:12px;color:var(--text-dim);}
+.settings-form input,.settings-form select,.settings-form textarea{background:var(--dark-3);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13.5px;outline:none;}
+.settings-form input:focus,.settings-form select:focus,.settings-form textarea:focus{border-color:var(--mint);}
+.settings-form button{align-self:flex-start;margin-top:6px;}
+.muted{color:var(--text-faint);font-size:12px;}
+
+/* ══ NOTIFICATIONS LIST ══ */
+.notif-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.notif-list li{background:var(--dark-3);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;animation:slideIn .35s ease;}
+.notif-list .n-title{font-weight:700;font-size:13.5px;}
+.notif-list .n-msg{font-size:12.5px;color:var(--text-dim);margin:4px 0;}
+.notif-list .n-time{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);}
+
+.login-history{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;}
+.login-history li{font-size:12px;color:var(--text-dim);font-family:var(--mono);border-bottom:1px dashed var(--line);padding-bottom:6px;}
+
+/* ══ MODALS ══ */
+.modal-backdrop{position:fixed;inset:0;background:rgba(3,10,12,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:60;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{width:100%;max-width:400px;padding:26px;display:flex;flex-direction:column;gap:10px;animation:modalIn .25s cubic-bezier(.34,1.56,.64,1);}
+@keyframes modalIn{from{opacity:0;transform:scale(.92) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal h3{font-size:17px;}
+.modal label{font-size:12px;color:var(--text-dim);margin-top:4px;}
+.modal input,.modal select{background:var(--dark-3);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13.5px;outline:none;}
+.modal input:focus,.modal select:focus{border-color:var(--mint);}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;}
+
+/* ══ TOASTS ══ */
+.toast-stack{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;z-index:80;}
+.toast{background:var(--dark-3);border:1px solid var(--line);border-left:3px solid var(--mint);border-radius:10px;padding:12px 16px;font-size:13px;box-shadow:0 10px 24px rgba(0,0,0,.3);animation:toastIn .3s ease;max-width:300px;}
+.toast.error{border-left-color:var(--danger);}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:860px){
+  .login-screen{grid-template-columns:1fr;}
+  .login-visual{display:none;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);}
+  .sidebar.mobile-open{transform:translateX(0);}
+  .burger{display:block;}
+  .stat-grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+  .content{padding:16px;}
+  .modal{max-width:92vw;}
+  .toast-stack{left:16px;right:16px;bottom:16px;}
+  .toast{max-width:none;}
+}
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr;}
+  .topbar{padding:10px 14px;gap:8px;}
+  .topbar-right{gap:8px;}
+  .weather{display:none;}
+  .profile-meta{display:none;}
+  .login-card{padding:24px;}
+  .login-visual-content h1{font-size:28px;}
+  .grid-2{gap:12px;}
+  .toolbar{flex-direction:column;align-items:stretch;}
+  .toolbar input[type=search],.toolbar select{min-width:0;width:100%;}
+}
+
+
+</style>
+<style>
+  .state-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .state-row .state-name{flex:1;min-width:90px}
+  .state-row input[type=number]{width:110px}
+  .state-add{display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap}
+  .state-add input{flex:1;min-width:120px}
+  .order-modal{max-width:660px;max-height:90vh;overflow:auto}
+  .order-modal p{margin:6px 0;font-size:14px}
+  .order-modal table{width:100%;margin:8px 0}
+  .gps-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .gps-tools input{flex:1;min-width:110px}
+  #productExtra textarea{width:100%;box-sizing:border-box}
+</style>
+<link rel="icon" href="images/bouesti-logo.jpg" type="image/jpeg">
+<style>
+.care-counts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.care-count{padding:8px 14px;border-radius:12px;background:var(--glass,rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.08);font-size:13px}
+.care-count b{display:block;font-size:20px}
+.care-chip{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:rgba(255,255,255,.1)}
+.care-chip.open{background:rgba(255,201,71,.2);color:#ffc947}.care-chip.in_progress{background:rgba(56,189,248,.2);color:#38bdf8}
+.care-chip.resolved,.care-chip.closed{background:rgba(2,245,161,.18);color:#02f5a1}
+.care-chip.urgent{background:rgba(255,77,109,.22);color:#ff4d6d}.care-chip.high{background:rgba(255,160,64,.2);color:#ffa040}
+.care-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px 16px;margin:8px 0 12px;font-size:13px}
+.care-meta span{display:block;color:var(--muted,#8aa);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.care-thread{display:flex;flex-direction:column;gap:8px;margin:10px 0;max-height:260px;overflow-y:auto}
+.care-bub{padding:9px 12px;border-radius:12px;max-width:88%;font-size:13.5px;white-space:pre-wrap}
+.care-bub.customer{align-self:flex-start;background:rgba(255,255,255,.07)}
+.care-bub.staff{align-self:flex-end;background:rgba(2,245,161,.15)}
+.care-bub small{display:block;opacity:.6;font-size:11px;margin-top:3px}
+.care-chat .care-bub.bot{align-self:flex-start;background:rgba(255,255,255,.07)}.care-chat .care-bub.user{align-self:flex-end;background:rgba(56,189,248,.18)}
+#careModalBody textarea{width:100%;min-height:80px;background:var(--dark-3);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;box-sizing:border-box}
+.toolbar input[type=search]{flex:1;min-width:180px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ LOADING SCREEN ══════════════════ -->
+<div id="loadScreen" class="load-screen">
+  <div class="load-mark">
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+      <circle cx="28" cy="28" r="24" stroke="url(#g)" stroke-width="3" stroke-linecap="round" stroke-dasharray="120 40"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="56" y2="56"><stop stop-color="#02f5a1"/><stop offset="1" stop-color="#01c880"/></linearGradient></defs>
+    </svg>
+  </div>
+  <div class="load-word">BOUESTI <span>ADMIN</span></div>
+  <div class="load-bar"><div class="load-bar-fill" id="loadBarFill"></div></div>
+  <div class="load-sub" id="loadSub">Waking up the control room…</div>
+</div>
+
+<!-- ══════════════════ LOGIN SCREEN ══════════════════ -->
+<div id="loginScreen" class="login-screen" hidden>
+  <div class="login-visual" data-aos="fade-right">
+    <div class="login-visual-glow"></div>
+    <div class="login-visual-content">
+      <div class="brand-mark">🌾 Bouesti</div>
+      <h1>The control room for<br><span>Ekiti's marketplace.</span></h1>
+      <p>Manage produce, livestock, orders and every farmer-to-doorstep delivery across all 16 LGAs — in real time.</p>
+      <div class="login-stats" id="loginPulseStrip"></div>
+    </div>
+  </div>
+  <div class="login-form-side">
+    <div class="login-card" data-aos="fade-up">
+      <div class="auth-card-head">
+        <div class="auth-logo" style="background:#fff;overflow:hidden;padding:2px"><img src="images/bouesti-logo.jpg" alt="Bouesti" style="width:100%;height:100%;object-fit:contain;border-radius:11px"></div>
+        <div class="auth-tabs" id="authTabs">
+          <div class="auth-tab-indicator" id="authTabIndicator"></div>
+          <button type="button" class="auth-tab active" data-auth-tab="signin">Sign in</button>
+          <button type="button" class="auth-tab" data-auth-tab="signup">Create account</button>
+        </div>
+      </div>
+
+      <!-- SIGN IN -->
+      <form id="loginForm" autocomplete="off">
+        <p class="login-hint">Welcome back — sign in with an admin, manager or staff account.</p>
+        <p class="login-hint"><a href="index.html">← Back to the storefront</a> · Shopper? <a href="login.html">Log in here</a></p>
+        <label>Email</label>
+        <div class="field">
+          <span class="field-ic">✉️</span>
+          <input type="email" id="loginEmail" placeholder="admin@bouesti.ng" required>
+        </div>
+        <label>Password</label>
+        <div class="pw-wrap field">
+          <span class="field-ic">🔒</span>
+          <input type="password" id="loginPassword" placeholder="••••••••" required style="padding-right:40px !important">
+          <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password">👁</button>
+        </div>
+        <div class="login-row">
+          <label class="check"><input type="checkbox" id="rememberMe"> Remember me</label>
+          <a href="#" id="forgotLink">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn-primary ripple" id="loginBtn">
+          <span>Sign in →</span>
+        </button>
+        <div class="login-error" id="loginError" hidden></div>
+        <p class="auth-switch">New admin? <a href="#" data-auth-tab="signup">Create an account</a></p>
+        <div class="login-demo">
+          Demo: <code>admin@bouesti.ng</code> / <code>Admin@12345</code>
+        </div>
+      </form>
+
+      <!-- SIGN UP -->
+      <form id="signupForm" autocomplete="off" hidden>
+        <p class="login-hint">Set up a new dashboard account in under a minute.</p>
+        <label>Full name</label>
+        <div class="field">
+          <span class="field-ic">🧑</span>
+          <input type="text" id="signupName" placeholder="e.g. Success Adebayo" required>
+        </div>
+        <label>Email</label>
+        <div class="field">
+          <span class="field-ic">✉️</span>
+          <input type="email" id="signupEmail" placeholder="you@bouesti.ng" required>
+        </div>
+        <label>Phone <small>(optional — lets you recover your password by SMS)</small></label>
+        <div class="field">
+          <span class="field-ic">📱</span>
+          <input type="tel" id="signupPhone" placeholder="0803 123 4567">
+        </div>
+        <label>Role</label>
+        <div class="role-pills" id="signupRolePills">
+          <label class="role-pill checked"><input type="radio" name="signupRole" value="admin" checked>Admin</label>
+          <label class="role-pill"><input type="radio" name="signupRole" value="manager">Manager</label>
+          <label class="role-pill"><input type="radio" name="signupRole" value="staff">Staff</label>
+        </div>
+        <label>Password</label>
+        <div class="pw-wrap field">
+          <span class="field-ic">🔒</span>
+          <input type="password" id="signupPassword" placeholder="At least 8 characters" required style="padding-right:40px !important">
+          <button type="button" class="pw-toggle" id="signupPwToggle" aria-label="Show password">👁</button>
+        </div>
+        <div class="pw-strength"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
+        <span class="pw-strength-label" id="pwStrengthLabel">Password strength</span>
+        <label>Confirm password</label>
+        <div class="field">
+          <span class="field-ic">🔒</span>
+          <input type="password" id="signupConfirm" placeholder="Re-enter password" required>
+        </div>
+        <button type="submit" class="btn-primary ripple" id="signupBtn">
+          <span>Create account →</span>
+        </button>
+        <div class="login-error" id="signupError" hidden></div>
+        <p class="auth-switch">Already have an account? <a href="#" data-auth-tab="signin">Sign in</a></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DASHBOARD SHELL ══════════════════ -->
+<div id="dashboard" class="dashboard" hidden>
+
+  <!-- floating ambient icons -->
+  <div class="floaters" aria-hidden="true">
+    <span>🌱</span><span>🐓</span><span>🐐</span><span>🌽</span><span>📦</span><span>🐖</span>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="side-top">
+      <div class="side-brand"><img src="images/bouesti-logo.jpg" alt="" style="width:26px;height:26px;border-radius:50%;background:#fff;object-fit:contain"><span class="side-brand-text">Bouesti</span></div>
+      <button class="collapse-btn" id="collapseBtn" aria-label="Collapse sidebar">‹</button>
+    </div>
+    <nav class="side-nav" id="sideNav">
+      <button class="nav-item active" data-section="overview"><span class="ic">◆</span><span class="lbl">Overview</span></button>
+      <button class="nav-item" data-section="users"><span class="ic">◆</span><span class="lbl">User Management</span></button>
+      <button class="nav-item" data-section="content"><span class="ic">◆</span><span class="lbl">Content</span></button>
+      <button class="nav-item" data-section="orders"><span class="ic">◆</span><span class="lbl">Orders</span></button>
+      <button class="nav-item" data-section="sellers"><span class="ic">◆</span><span class="lbl">Seller Requests</span><span class="nav-badge" id="navSellerBadge" hidden>0</span></button>
+      <button class="nav-item" data-section="care"><span class="ic">💬</span><span class="lbl">Customer Care</span><span class="nav-badge" id="navCareBadge" hidden>0</span></button>
+      <button class="nav-item" data-section="reports"><span class="ic">◆</span><span class="lbl">Reports &amp; Analytics</span></button>
+      <button class="nav-item" data-section="notifications"><span class="ic">◆</span><span class="lbl">Notifications</span><span class="nav-badge" id="navNotifBadge" hidden>0</span></button>
+      <button class="nav-item" data-section="security"><span class="ic">◆</span><span class="lbl">Security</span></button>
+      <button class="nav-item" data-section="settings"><span class="ic">◆</span><span class="lbl">Settings</span></button>
+      <button class="nav-item" data-section="logs"><span class="ic">◆</span><span class="lbl">Activity Logs</span></button>
+    </nav>
+    <div class="side-bottom">
+      <a class="nav-item" href="index.html" target="_blank" rel="noopener" style="text-decoration:none"><span class="ic">🛒</span><span class="lbl">View storefront</span></a>
+      <button id="logoutBtn" class="nav-item logout"><span class="ic">⏻</span><span class="lbl">Log out</span></button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <button class="burger" id="burgerBtn" aria-label="Toggle sidebar">☰</button>
+      <div class="topbar-title" id="sectionTitle">Overview</div>
+      <div class="topbar-right">
+        <div class="weather" id="weatherWidget">⛅ --°C</div>
+        <div class="clock" id="liveClock">--:--:--</div>
+        <a class="icon-btn" href="index.html" target="_blank" rel="noopener" title="Open the storefront" aria-label="Open the storefront" style="text-decoration:none">🛒</a>
+        <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">🌓</button>
+        <div class="bell-wrap">
+          <button class="icon-btn" id="bellBtn" aria-label="Notifications">🔔<span class="bell-dot" id="bellDot" hidden></span></button>
+        </div>
+        <div class="profile-chip" id="profileChip">
+          <div class="avatar" id="avatarInitials">A</div>
+          <div class="profile-meta">
+            <div class="profile-name" id="profileName">—</div>
+            <div class="profile-role" id="profileRole">—</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+
+      <!-- ══ OVERVIEW ══ -->
+      <section class="panel" data-panel="overview">
+        <div class="stat-grid">
+          <div class="stat-card glass" data-aos="fade-up" data-aos-delay="0">
+            <div class="stat-ic">👥</div><div class="stat-meta"><div class="stat-label">Total Users</div><div class="stat-value" data-count id="statUsers">0</div></div>
+            <svg class="progress-ring" width="46" height="46"><circle class="pr-bg" cx="23" cy="23" r="19"/><circle class="pr-fg" cx="23" cy="23" r="19" id="ringUsers"/></svg>
+          </div>
+          <div class="stat-card glass" data-aos="fade-up" data-aos-delay="60">
+            <div class="stat-ic">📦</div><div class="stat-meta"><div class="stat-label">Total Orders</div><div class="stat-value" data-count id="statOrders">0</div></div>
+            <svg class="progress-ring" width="46" height="46"><circle class="pr-bg" cx="23" cy="23" r="19"/><circle class="pr-fg" cx="23" cy="23" r="19" id="ringOrders"/></svg>
+          </div>
+          <div class="stat-card glass neon" data-aos="fade-up" data-aos-delay="120">
+            <div class="stat-ic">💰</div><div class="stat-meta"><div class="stat-label">Revenue</div><div class="stat-value" data-count data-prefix="₦" id="statRevenue">0</div></div>
+            <svg class="progress-ring" width="46" height="46"><circle class="pr-bg" cx="23" cy="23" r="19"/><circle class="pr-fg" cx="23" cy="23" r="19" id="ringRevenue"/></svg>
+          </div>
+          <div class="stat-card glass" data-aos="fade-up" data-aos-delay="180">
+            <div class="stat-ic">🌽</div><div class="stat-meta"><div class="stat-label">Active Products</div><div class="stat-value" data-count id="statProducts">0</div></div>
+            <svg class="progress-ring" width="46" height="46"><circle class="pr-bg" cx="23" cy="23" r="19"/><circle class="pr-fg" cx="23" cy="23" r="19" id="ringProducts"/></svg>
+          </div>
+          <div class="stat-card glass" data-aos="fade-up" data-aos-delay="240">
+            <div class="stat-ic">🚚</div><div class="stat-meta"><div class="stat-label">Pending Deliveries</div><div class="stat-value" data-count id="statPending">0</div></div>
+            <svg class="progress-ring" width="46" height="46"><circle class="pr-bg" cx="23" cy="23" r="19"/><circle class="pr-fg" cx="23" cy="23" r="19" id="ringPending"/></svg>
+          </div>
+          <div class="stat-card glass" data-aos="fade-up" data-aos-delay="270">
+            <div class="stat-ic">🧑‍🌾</div><div class="stat-meta"><div class="stat-label">New Seller Requests</div><div class="stat-value" data-count id="statSellers">0</div></div>
+          </div>
+          <div class="stat-card glass" data-aos="fade-up" data-aos-delay="300">
+            <div class="stat-ic">🔔</div><div class="stat-meta"><div class="stat-label">Notifications</div><div class="stat-value" data-count id="statNotif">0</div></div>
+            <svg class="progress-ring" width="46" height="46"><circle class="pr-bg" cx="23" cy="23" r="19"/><circle class="pr-fg" cx="23" cy="23" r="19" id="ringNotif"/></svg>
+          </div>
+        </div>
+
+        <div class="pulse-card glass" data-aos="fade-up">
+          <div class="pulse-head">
+            <h3>Ekiti Live Pulse <span class="live-dot"></span></h3>
+            <p>Real-time order activity across all 16 LGAs — updates every few seconds via Socket.IO</p>
+          </div>
+          <div class="pulse-strip" id="pulseStrip"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="chart-card glass" data-aos="fade-up">
+            <h3>Revenue — last 6 months</h3>
+            <canvas id="chartRevenue" height="180"></canvas>
+          </div>
+          <div class="chart-card glass" data-aos="fade-up">
+            <h3>Recent Activity</h3>
+            <ul class="mini-log" id="miniLog"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ USERS ══ -->
+      <section class="panel" data-panel="users" hidden>
+        <div class="toolbar">
+          <input type="search" placeholder="Search users by name or email…" id="userSearch">
+          <select id="userRoleFilter">
+            <option value="">All roles</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="staff">Staff</option>
+            <option value="customer">Customer</option>
+          </select>
+          <button class="btn-primary ripple" id="addUserBtn">+ Add User</button>
+        </div>
+        <div class="table-wrap glass">
+          <table class="data-table" id="usersTable">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="skeleton-rows" id="usersSkeleton"></div>
+        </div>
+        <div class="pagination" id="usersPagination"></div>
+      </section>
+
+      <!-- ══ CONTENT ══ -->
+      <section class="panel" data-panel="content" hidden>
+        <div class="tabs" id="contentTabs">
+          <button class="tab active" data-tab="produce">Produce</button>
+          <button class="tab" data-tab="livestock">Livestock</button>
+          <button class="tab" data-tab="insurance">Insurance</button>
+          <button class="tab" data-tab="banners">Homepage Banners</button>
+          <button class="tab" data-tab="delivery">Delivery Info</button>
+          <button class="tab" data-tab="contact">Contact Info</button>
+        </div>
+
+        <div class="tab-panel" data-tabpanel="produce">
+          <div class="toolbar"><input type="search" class="prod-search" data-cat="produce" placeholder="Search produce…"><button class="btn-primary ripple" data-add="produce">+ Add Produce</button></div>
+          <div class="card-grid" data-list="produce"></div>
+        </div>
+        <div class="tab-panel" data-tabpanel="livestock" hidden>
+          <div class="toolbar"><input type="search" class="prod-search" data-cat="livestock" placeholder="Search livestock…"><button class="btn-primary ripple" data-add="livestock">+ Add Livestock</button></div>
+          <div class="card-grid" data-list="livestock"></div>
+        </div>
+        <div class="tab-panel" data-tabpanel="insurance" hidden>
+          <div class="toolbar"><input type="search" class="prod-search" data-cat="insurance" placeholder="Search insurance plans…"><button class="btn-primary ripple" data-add="insurance">+ Add Plan</button></div>
+          <div class="card-grid" data-list="insurance"></div>
+        </div>
+        <div class="tab-panel" data-tabpanel="banners" hidden>
+          <div class="toolbar"><button class="btn-primary ripple" id="addBannerBtn">+ Add Banner</button></div>
+          <div class="card-grid" data-list="banners"></div>
+        </div>
+        <div class="tab-panel" data-tabpanel="delivery" hidden>
+          <form class="settings-form glass" id="deliveryForm">
+            <label>Base delivery fee — Ekiti (₦)</label>
+            <input type="number" id="deliveryBase">
+            <label>Delivery states and fees (shown at checkout on the website)</label>
+            <div id="deliveryStates"></div>
+            <div class="state-add">
+              <input type="text" id="newStateName" placeholder="Add a state, e.g. Lagos">
+              <input type="number" id="newStateFee" placeholder="Fee ₦">
+              <button type="button" class="btn-ghost" id="addStateBtn">+ Add state</button>
+            </div>
+            <button class="btn-primary ripple">Save delivery info</button>
+          </form>
+        </div>
+        <div class="tab-panel" data-tabpanel="contact" hidden>
+          <form class="settings-form glass" id="contactForm">
+            <label>Support email</label>
+            <input type="email" id="contactEmail">
+            <label>Support phone</label>
+            <input type="text" id="contactPhone">
+            <label>Office address</label>
+            <input type="text" id="contactAddress">
+            <button class="btn-primary ripple">Save contact info</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ══ ORDERS ══ -->
+      <section class="panel" data-panel="orders" hidden>
+        <div class="toolbar">
+          <select id="orderStatusFilter">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="table-wrap glass">
+          <table class="data-table" id="ordersTable">
+            <thead><tr><th>Ref</th><th>Customer</th><th>LGA</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="ordersPagination"></div>
+      </section>
+
+      <!-- ══ SELLER REQUESTS ══ -->
+      <section class="panel" data-panel="sellers" hidden>
+        <div class="toolbar">
+          <select id="sellerStatusFilter">
+            <option value="">All requests</option>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="table-wrap glass">
+          <table class="data-table" id="sellersTable">
+            <thead><tr><th>Name</th><th>Phone</th><th>Wants to sell</th><th>Location</th><th>Date</th><th>Status</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="sellersPagination"></div>
+      </section>
+      <!-- CUSTOMER CARE -->
+      <section class="panel" data-panel="care" hidden>
+        <div class="care-counts" id="careCounts"></div>
+        <div class="toolbar">
+          <select id="careView"><option value="complaints">Complaints</option><option value="chats">AI chat transcripts</option></select>
+          <select id="careStatusFilter">
+            <option value="">All statuses</option><option value="open">Open</option><option value="in_progress">In progress</option>
+            <option value="resolved">Resolved</option><option value="closed">Closed</option>
+          </select>
+          <select id="careCategoryFilter"><option value="">All categories</option></select>
+          <input type="search" id="careSearch" placeholder="Search reference, name, phone, order…">
+        </div>
+        <div class="table-wrap glass" id="careComplaintsWrap">
+          <table class="data-table" id="careTable">
+            <thead><tr><th>Reference</th><th>Customer</th><th>Issue</th><th>Priority</th><th>Status</th><th>Logged</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="table-wrap glass" id="careChatsWrap" hidden>
+          <table class="data-table" id="careChatTable">
+            <thead><tr><th>Visitor</th><th>Messages</th><th>Last question</th><th>Complaint</th><th>Last active</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="carePagination"></div>
+      </section>
+      <!-- ══ REPORTS ══ -->
+      <section class="panel" data-panel="reports" hidden>
+        <div class="grid-2">
+          <div class="chart-card glass" data-aos="fade-up"><h3>Sales — orders per month</h3><canvas id="chartSales" height="180"></canvas></div>
+          <div class="chart-card glass" data-aos="fade-up"><h3>Product performance (stock by category)</h3><canvas id="chartProductPerf" height="180"></canvas></div>
+        </div>
+        <div class="grid-2">
+          <div class="chart-card glass" data-aos="fade-up"><h3>Customer growth</h3><canvas id="chartGrowth" height="180"></canvas></div>
+          <div class="chart-card glass" data-aos="fade-up"><h3>Daily visitors</h3><canvas id="chartVisitors" height="180"></canvas></div>
+        </div>
+        <div class="grid-2">
+          <div class="chart-card glass" data-aos="fade-up"><h3>Orders by delivery state</h3><canvas id="chartState" height="180"></canvas></div>
+          <div class="chart-card glass" data-aos="fade-up"><h3>Top items by sales (₦)</h3><canvas id="chartTopItems" height="180"></canvas></div>
+        </div>
+        <div class="chart-card glass" data-aos="fade-up"><h3>Orders by LGA (real-time)</h3><canvas id="chartLga" height="220"></canvas></div>
+      </section>
+
+      <!-- ══ NOTIFICATIONS ══ -->
+      <section class="panel" data-panel="notifications" hidden>
+        <form class="settings-form glass" id="notifForm" data-aos="fade-up">
+          <h3>Send a notification or post an announcement</h3>
+          <p class="muted">Choose "Announcement" to show it in the News section of the storefront for all shoppers.</p>
+          <select id="notifType">
+            <option value="broadcast">Announcement (also shown on the website)</option>
+            <option value="email">Email</option>
+            <option value="push">Push</option>
+          </select>
+          <input type="text" id="notifTitle" placeholder="Title">
+          <textarea id="notifMessage" placeholder="Message" rows="3"></textarea>
+          <button class="btn-primary ripple">Send</button>
+        </form>
+        <ul class="notif-list" id="notifList"></ul>
+      </section>
+
+      <!-- ══ SECURITY ══ -->
+      <section class="panel" data-panel="security" hidden>
+        <div class="grid-2">
+          <form class="settings-form glass" id="changePwForm" data-aos="fade-up">
+            <h3>Change password</h3>
+            <label>Current password</label>
+            <input type="password" id="currentPw">
+            <label>New password</label>
+            <input type="password" id="newPw">
+            <button class="btn-primary ripple">Update password</button>
+          </form>
+          <div class="settings-form glass" data-aos="fade-up">
+            <h3>Two-factor authentication</h3>
+            <p class="muted">Scaffolded and ready — connect an OTP/SMS provider to activate fully.</p>
+            <button class="btn-ghost ripple" id="toggle2fa">Enable 2FA</button>
+            <h3 style="margin-top:20px">Login history</h3>
+            <ul class="login-history" id="loginHistoryList"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ SETTINGS ══ -->
+      <section class="panel" data-panel="settings" hidden>
+        <form class="settings-form glass" id="settingsForm" data-aos="fade-up">
+          <h3>Marketplace configuration</h3>
+          <label>Marketplace name</label>
+          <input type="text" id="setName">
+          <label>Currency</label>
+          <select id="setCurrency"><option value="NGN">NGN (₦)</option><option value="USD">USD ($)</option></select>
+          <label>Theme</label>
+          <select id="setTheme"><option value="dark">Dark</option><option value="light">Light</option></select>
+          <label>SMTP host (email)</label>
+          <input type="text" id="setSmtp" placeholder="smtp.yourprovider.com">
+          <label>Payment gateway public key</label>
+          <input type="text" id="setPayment" placeholder="pk_live_…">
+          <button class="btn-primary ripple">Save settings</button>
+        </form>
+        <div class="settings-form glass" data-aos="fade-up">
+          <h3>Database backup</h3>
+          <p class="muted" id="lastBackupText">No backup yet.</p>
+          <button class="btn-ghost ripple" id="backupBtn">Generate backup now</button>
+        </div>
+      </section>
+
+      <!-- ══ ACTIVITY LOGS ══ -->
+      <section class="panel" data-panel="logs" hidden>
+        <div class="toolbar"><input type="search" id="logSearch" placeholder="Search actions…"></div>
+        <div class="table-wrap glass">
+          <table class="data-table" id="logsTable">
+            <thead><tr><th>Date</th><th>Time</th><th>User</th><th>Action</th><th>IP</th><th>Browser</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="logsPagination"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════ USER MODAL ══════════════════ -->
+<div class="modal-backdrop" id="userModal" hidden>
+  <div class="modal glass">
+    <h3 id="userModalTitle">Add user</h3>
+    <input type="hidden" id="userModalId">
+    <label>Full name</label>
+    <input type="text" id="userModalName">
+    <label>Email</label>
+    <input type="email" id="userModalEmail">
+    <label>Password <span class="muted" id="userPwHint">(leave blank to keep unchanged)</span></label>
+    <input type="password" id="userModalPassword">
+    <label>Role</label>
+    <select id="userModalRole"><option value="admin">Admin</option><option value="manager">Manager</option><option value="staff">Staff</option><option value="customer">Customer</option></select>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="userModalCancel">Cancel</button>
+      <button class="btn-primary ripple" id="userModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ PRODUCT MODAL ══════════════════ -->
+<div class="modal-backdrop" id="productModal" hidden>
+  <div class="modal glass">
+    <h3 id="productModalTitle">Add item</h3>
+    <input type="hidden" id="productModalId"><input type="hidden" id="productModalCat">
+    <label>Title</label>
+    <input type="text" id="productModalName">
+    <label>Price (₦)</label>
+    <input type="number" id="productModalPrice">
+    <label>Stock <small class="muted">(in the unit below: e.g. dericas, bunches, heads)</small></label>
+    <input type="number" id="productModalStock">
+    <div id="productExtra">
+      <label>Group (where it appears on the website)</label>
+      <select id="productModalGroup"></select>
+      <label>Unit the price is per <small class="muted">(derica, bunch, kg, head, crate ...)</small></label>
+      <select id="productModalUnit"></select>
+      <label>Description</label>
+      <textarea id="productModalDesc" rows="2"></textarea>
+      <label>Other ways to buy it <small class="muted">(optional, one per line: <code>unit, how many of the price unit it holds, weight in kg (optional)</code>)</small></label>
+      <textarea id="productModalMeasures" rows="4" placeholder="paint rubber, 2.65, 4.5&#10;bag, 58.8, 100&#10;(price unit is derica; a paint rubber holds 2.65 dericas and weighs about 4.5 kg)"></textarea>
+      <div class="muted" id="productModalMeasurePreview" style="font-size:12px;margin-top:4px"></div>
+      <label>Processed price per unit (optional — turns on the live / processed choice; Price above is then the live price)</label>
+      <input type="number" id="productModalProcessed">
+      <label>Picture name (images/products/&lt;name&gt;.jpg or .svg)</label>
+      <input type="text" id="productModalImage">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="productModalCancel">Cancel</button>
+      <button class="btn-primary ripple" id="productModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ORDER MODAL ══════════════════ -->
+<div class="modal-backdrop" id="orderModal" hidden>
+  <div class="modal glass order-modal">
+    <h3 id="orderModalTitle">Order</h3>
+    <div id="orderModalBody"></div>
+    <div class="modal-actions">
+      <a class="btn-ghost" id="orderModalReceipt" href="#" target="_blank" rel="noopener" style="text-decoration:none">🖨 Receipt</a>
+      <a class="btn-ghost" id="orderModalTrack" href="#" target="_blank" rel="noopener" style="text-decoration:none">📍 Open live map</a>
+      <button class="btn-ghost" id="orderModalClose">Close</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════ BANNER MODAL ══════════════════ -->
+<div class="modal-backdrop" id="bannerModal" hidden>
+  <div class="modal glass">
+    <h3>Add banner</h3>
+    <label>Title</label><input type="text" id="bannerTitle">
+    <label>Subtitle</label><input type="text" id="bannerSubtitle">
+    <div class="modal-actions">
+      <button class="btn-ghost" id="bannerModalCancel">Cancel</button>
+      <button class="btn-primary ripple" id="bannerModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER CARE MODAL -->
+<div class="modal-backdrop" id="careModal" hidden>
+  <div class="modal glass order-modal" style="max-width:760px;width:96vw">
+    <h3 id="careModalTitle">Complaint</h3>
+    <div id="careModalBody"></div>
+    <div class="modal-actions">
+      <a class="btn-ghost" id="careModalWa" href="#" target="_blank" rel="noopener" style="text-decoration:none">WhatsApp customer</a>
+      <button class="btn-ghost" id="careModalDelete">Delete</button>
+      <button class="btn-ghost" id="careModalClose">Close</button>
+    </div>
+  </div>
+</div>
+<!-- toast root -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="recovery.js"></script>
+<script src="units.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

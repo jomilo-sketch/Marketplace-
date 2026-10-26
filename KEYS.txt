@@ -1,0 +1,10 @@
+PRODUCT PICTURES
+================
+To give an item its own picture, save a JPG named <key>.jpg in this folder (images/products/).
+The website uses it automatically (no code change). Items below still show a coloured placeholder.
+
+acha               grains       Acha (Fonio)
+watermelon         fruits       Watermelon
+catfish_smoked     fish         Smoked Catfish
+tilapia_fresh      fish         Fresh Tilapia
+tilapia_smoked     fish         Smoked Tilapia
